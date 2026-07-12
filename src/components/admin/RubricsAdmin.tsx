@@ -2,18 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { CATEGORIES, type Category, type Rubric } from "@/types";
+import { useToast } from "@/components/admin/ToastProvider";
 
 export default function RubricsAdmin() {
+  const showToast = useToast();
   const [rubrics, setRubrics] = useState<Record<Category, string>>(
     {} as Record<Category, string>,
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingCategory, setSavingCategory] = useState<Category | null>(null);
-  const [savedCategory, setSavedCategory] = useState<Category | null>(null);
-  const [rowErrors, setRowErrors] = useState<Partial<Record<Category, string>>>({});
 
   useEffect(() => {
+    let ignore = false;
+
     async function load() {
       setLoading(true);
       setError(null);
@@ -24,22 +26,24 @@ export default function RubricsAdmin() {
         const map = {} as Record<Category, string>;
         for (const category of CATEGORIES) map[category] = "";
         for (const rubric of data.rubrics) map[rubric.category] = rubric.criteria;
-        setRubrics(map);
+        if (!ignore) setRubrics(map);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
+        if (!ignore) setError(err instanceof Error ? err.message : "Something went wrong");
       } finally {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       }
     }
+
     load();
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   async function handleSave(category: Category) {
     const criteria = rubrics[category]?.trim();
     if (!criteria) return;
     setSavingCategory(category);
-    setSavedCategory(null);
-    setRowErrors((prev) => ({ ...prev, [category]: undefined }));
     try {
       const res = await fetch(`/api/admin/rubrics/${encodeURIComponent(category)}`, {
         method: "PATCH",
@@ -50,13 +54,9 @@ export default function RubricsAdmin() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Failed to save rubric");
       }
-      setSavedCategory(category);
-      setTimeout(() => setSavedCategory((cur) => (cur === category ? null : cur)), 2000);
+      showToast("success", `${category} rubric saved`);
     } catch (err) {
-      setRowErrors((prev) => ({
-        ...prev,
-        [category]: err instanceof Error ? err.message : "Something went wrong",
-      }));
+      showToast("error", err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSavingCategory(null);
     }
@@ -77,8 +77,7 @@ export default function RubricsAdmin() {
             placeholder="Grading criteria for this category…"
             className="mt-3 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm leading-relaxed outline-none focus:border-primary"
           />
-          {rowErrors[category] && <p className="mt-2 text-sm text-red-600">{rowErrors[category]}</p>}
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-3">
             <button
               onClick={() => handleSave(category)}
               disabled={!rubrics[category]?.trim() || savingCategory === category}
@@ -86,7 +85,6 @@ export default function RubricsAdmin() {
             >
               {savingCategory === category ? "Saving…" : "Save"}
             </button>
-            {savedCategory === category && <span className="text-sm text-primary">Saved</span>}
           </div>
         </div>
       ))}
