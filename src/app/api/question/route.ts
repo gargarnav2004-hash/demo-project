@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { getAnthropicClient, CLAUDE_MODEL } from "@/lib/anthropic";
-import { QUESTION_BANK } from "@/lib/questions";
+import { getQuestionsByCategory } from "@/lib/questionsDb";
 import { CATEGORIES, type Category } from "@/types";
 
 const SelectionSchema = z.object({
@@ -18,11 +18,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid category" }, { status: 400 });
   }
 
-  const bank = QUESTION_BANK[category];
-  const candidates = bank.filter((q) => !excludeIds.includes(q.id));
-  const pool = candidates.length > 0 ? candidates : bank;
-
   try {
+    const bank = await getQuestionsByCategory(category);
+    if (bank.length === 0) {
+      return NextResponse.json(
+        { error: `No questions found for ${category}. Add some in the admin panel.` },
+        { status: 404 },
+      );
+    }
+
+    const candidates = bank.filter((q) => !excludeIds.includes(q.id));
+    const pool = candidates.length > 0 ? candidates : bank;
+
     const client = getAnthropicClient();
     const response = await client.messages.parse({
       model: CLAUDE_MODEL,
@@ -47,7 +54,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Failed to select question via Claude:", error);
     return NextResponse.json(
-      { error: "Failed to select a question. Check your ANTHROPIC_API_KEY." },
+      { error: "Failed to select a question. Check your ANTHROPIC_API_KEY and Supabase configuration." },
       { status: 500 },
     );
   }
