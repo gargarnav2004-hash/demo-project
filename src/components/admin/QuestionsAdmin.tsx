@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CATEGORIES, DIFFICULTIES, type Category, type Difficulty, type Question } from "@/types";
+import { useToast } from "@/components/admin/ToastProvider";
 
 interface EditState {
   category: Category;
@@ -10,6 +11,7 @@ interface EditState {
 }
 
 export default function QuestionsAdmin() {
+  const showToast = useToast();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,13 +21,11 @@ export default function QuestionsAdmin() {
   const [newDifficulty, setNewDifficulty] = useState<Difficulty>("Medium");
   const [newPrompt, setNewPrompt] = useState("");
   const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editState, setEditState] = useState<EditState | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [rowError, setRowError] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -54,7 +54,6 @@ export default function QuestionsAdmin() {
   async function handleCreate() {
     if (!newPrompt.trim() || creating) return;
     setCreating(true);
-    setCreateError(null);
     try {
       const res = await fetch("/api/admin/questions", {
         method: "POST",
@@ -68,8 +67,9 @@ export default function QuestionsAdmin() {
       const data: { question: Question } = await res.json();
       setQuestions((prev) => [...prev, data.question]);
       setNewPrompt("");
+      showToast("success", "Question added");
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Something went wrong");
+      showToast("error", err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setCreating(false);
     }
@@ -78,7 +78,6 @@ export default function QuestionsAdmin() {
   function startEdit(question: Question) {
     setEditingId(question.id);
     setEditState({ category: question.category, prompt: question.prompt, difficulty: question.difficulty });
-    setRowError(null);
   }
 
   function cancelEdit() {
@@ -89,7 +88,6 @@ export default function QuestionsAdmin() {
   async function saveEdit(id: string) {
     if (!editState || !editState.prompt.trim()) return;
     setSavingId(id);
-    setRowError(null);
     try {
       const res = await fetch(`/api/admin/questions/${id}`, {
         method: "PATCH",
@@ -104,8 +102,9 @@ export default function QuestionsAdmin() {
       setQuestions((prev) => prev.map((q) => (q.id === id ? data.question : q)));
       setEditingId(null);
       setEditState(null);
+      showToast("success", "Question updated");
     } catch (err) {
-      setRowError(err instanceof Error ? err.message : "Something went wrong");
+      showToast("error", err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSavingId(null);
     }
@@ -114,7 +113,6 @@ export default function QuestionsAdmin() {
   async function handleDelete(id: string) {
     if (!window.confirm("Delete this question? This can't be undone.")) return;
     setDeletingId(id);
-    setRowError(null);
     try {
       const res = await fetch(`/api/admin/questions/${id}`, { method: "DELETE" });
       if (!res.ok) {
@@ -122,8 +120,9 @@ export default function QuestionsAdmin() {
         throw new Error(data.error ?? "Failed to delete question");
       }
       setQuestions((prev) => prev.filter((q) => q.id !== id));
+      showToast("success", "Question deleted");
     } catch (err) {
-      setRowError(err instanceof Error ? err.message : "Something went wrong");
+      showToast("error", err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setDeletingId(null);
     }
@@ -167,7 +166,6 @@ export default function QuestionsAdmin() {
           rows={2}
           className="mt-3 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
         />
-        {createError && <p className="mt-2 text-sm text-red-600">{createError}</p>}
         <button
           onClick={handleCreate}
           disabled={!newPrompt.trim() || creating}
@@ -194,8 +192,6 @@ export default function QuestionsAdmin() {
           ))}
         </select>
       </div>
-
-      {rowError && <p className="mt-3 text-sm text-red-600">{rowError}</p>}
 
       <div className="mt-3 space-y-3">
         {loading ? (

@@ -2,18 +2,18 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/admin/ToastProvider";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const showToast = useToast();
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!password || loading) return;
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch("/api/admin/login", {
         method: "POST",
@@ -24,10 +24,11 @@ export default function AdminLoginPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Login failed");
       }
+      showToast("success", "Signed in");
       router.push("/admin");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      showToast("error", err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -51,7 +52,6 @@ export default function AdminLoginPage() {
           autoFocus
           className="mt-4 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
         />
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
         <button
           type="submit"
           disabled={!password || loading}
