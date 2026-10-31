@@ -3,7 +3,8 @@ import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { getAnthropicClient, CLAUDE_MODEL } from "@/lib/anthropic";
 import { getRubric } from "@/lib/rubricsDb";
-import { CATEGORIES, type Category } from "@/types";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { CATEGORIES, MAX_ANSWER_LENGTH, MAX_QUESTION_LENGTH, type Category } from "@/types";
 
 const FeedbackSchema = z.object({
   score: z.number().int().min(1).max(5),
@@ -11,13 +12,22 @@ const FeedbackSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const category = body.category as Category;
-  const question: string = body.question;
-  const answer: string = body.answer;
+  const limited = checkRateLimit(req, "feedback", 10);
+  if (limited) return limited;
 
-  if (!CATEGORIES.includes(category) || !question || !answer?.trim()) {
+  const body = await req.json().catch(() => ({}));
+  const category = body.category as Category;
+  const question = typeof body.question === "string" ? body.question : "";
+  const answer = typeof body.answer === "string" ? body.answer : "";
+
+  if (!CATEGORIES.includes(category) || !question || !answer.trim()) {
     return NextResponse.json({ error: "Missing category, question, or answer" }, { status: 400 });
+  }
+  if (question.length > MAX_QUESTION_LENGTH || answer.length > MAX_ANSWER_LENGTH) {
+    return NextResponse.json(
+      { error: `Answer must be at most ${MAX_ANSWER_LENGTH} characters.` },
+      { status: 400 },
+    );
   }
 
   try {
