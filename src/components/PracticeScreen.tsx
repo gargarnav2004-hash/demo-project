@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Category, FeedbackResult, Question } from "@/types";
+import { MAX_ANSWER_LENGTH, type Category, type FeedbackResult, type Question } from "@/types";
 import FeedbackPanel from "./FeedbackPanel";
 
 interface PracticeScreenProps {
@@ -57,9 +57,16 @@ export default function PracticeScreen({
   return (
     <section className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
       <div className="flex items-center justify-between">
-        <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-          {category}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            {category}
+          </span>
+          {question && !error && (
+            <span className="rounded-full border border-border px-3 py-1 text-xs text-muted">
+              {question.difficulty}
+            </span>
+          )}
+        </div>
         <button onClick={onChangeCategory} className="text-sm text-muted hover:text-foreground">
           Change category
         </button>
@@ -82,6 +89,7 @@ export default function PracticeScreen({
         onChange={(e) => setAnswer(e.target.value)}
         disabled={!question || !!feedback}
         rows={8}
+        maxLength={MAX_ANSWER_LENGTH}
         placeholder="Type your answer here…"
         className="mt-4 w-full resize-none rounded-2xl border border-border bg-surface p-4 text-sm leading-relaxed outline-none focus:border-primary disabled:opacity-60"
       />

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { getAnthropicClient, CLAUDE_MODEL } from "@/lib/anthropic";
 import { getQuestionsByCategory } from "@/lib/questionsDb";
+import { checkRateLimit } from "@/lib/rateLimit";
 import { CATEGORIES, type Category } from "@/types";
 
 const SelectionSchema = z.object({
@@ -10,7 +11,10 @@ const SelectionSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const limited = checkRateLimit(req, "question", 20);
+  if (limited) return limited;
+
+  const body = await req.json().catch(() => ({}));
   const category = body.category as Category;
   const excludeIds: string[] = Array.isArray(body.excludeIds) ? body.excludeIds : [];
 
