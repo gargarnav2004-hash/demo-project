@@ -17,7 +17,7 @@ and signed-in users straight to `/practice`; after signing in or up Clerk
 returns them to `/practice`.
 
 Flow: landing page `/` ("Start practicing") -> `/sign-in` or `/sign-up` if
-signed out -> `/practice`: category selector (6 categories) ->
+signed out -> `/practice`: category selector (7 categories) ->
 practice screen (one question with category + difficulty badges, textarea, submit) -> feedback panel (score +
 bullets, with "Next question" / "Change category" actions).
 
@@ -48,14 +48,29 @@ practice page since both read from the same Supabase tables.
   separate from Clerk: admins do not need a Clerk account.
 - `@vercel/analytics` — `<Analytics />` is rendered in `src/app/layout.tsx`;
   data shows up in the Vercel project's Analytics tab (must be enabled there)
+- `posthog-js` for product analytics. It starts in
+  `src/instrumentation-client.ts` and sends through the `/ingest` rewrite in
+  `next.config.ts`, so ad blockers lose fewer events. Autocapture, session
+  recording and surveys are off: only the events in `src/lib/analytics.ts` and
+  pageviews are sent, and answer text never reaches PostHog.
 
 ## Where things live
 
 - `src/types/index.ts` — `Category`, `Difficulty`, `Question`, `Rubric`,
   `FeedbackResult` types, plus the `CATEGORIES` tuple (Product Sense,
-  Metrics, Estimation, Strategy, Behavioural, AI PM), `DIFFICULTIES`
-  tuple (Easy, Medium, Hard), and the `MAX_ANSWER_LENGTH` (5000) /
-  `MAX_QUESTION_LENGTH` (1000) input caps.
+  Metrics, Root Cause Analysis, Estimation, Strategy, Behavioural, AI PM),
+  `DIFFICULTIES`
+  tuple (Easy, Medium, Hard), and the `MAX_ANSWER_LENGTH` (5000) input cap.
+- `src/lib/analytics.ts` — `track(event, props)`, the typed list of PostHog
+  events: `signed_up`, `question_started`, `answer_submitted`,
+  `feedback_viewed`, `feedback_rated`.
+- `src/components/PostHogIdentify.tsx` — mounted in the root layout. Calls
+  `posthog.identify` with the Clerk user id only (no email or name),
+  `posthog.reset` after sign-out, and sends `signed_up` once for an account
+  created in the last 10 minutes, since Clerk has no client-side sign-up event.
+- `src/lib/attemptsDb.ts` — reads and writes for the `attempts` and
+  `feedback_ratings` tables. `getUserAttempt` and `setRating` check that the
+  attempt belongs to the user.
 - `src/lib/rateLimit.ts` — `checkRateLimit(req, route, limit)`: per-IP
   sliding-window limiter (60s window) used by the public API routes
   (`/api/question` 20/min, `/api/feedback` 10/min). Returns a `429` with
@@ -69,7 +84,22 @@ practice page since both read from the same Supabase tables.
 - `supabase/migrations/` — numbered SQL files for every schema change since
   `schema.sql`, each run once by hand in the Supabase SQL editor. `0001`
   adds `usage_daily`, `app_usage_daily` and the atomic `consume_ai_call` /
-  `release_ai_call` functions (executable by `service_role` only).
+  `release_ai_call` functions (executable by `service_role` only). `0002` adds
+  `attempts` (every scored answer) and `feedback_ratings` (one thumbs up/down
+  per attempt). `0003` adds the Root Cause Analysis category with a rubric and
+  5 questions.
+- `src/lib/progress.ts` — `computeProgress(attempts)` turns saved attempts into
+  the dashboard's category averages, daily score trend (latest 30 practice days)
+  and streak. Days are IST dates, and a streak survives until a full day is
+  missed. Stats cover the user's latest 1000 answers (Supabase's row limit).
+- `src/app/(site)/dashboard/page.tsx` (`/dashboard`) — protected progress page
+  with totals, streak, `ScoreTrendChart`, category averages and paged past
+  answers. `dashboard/[id]/page.tsx` reopens one answer, and returns `404` for
+  anyone but its owner.
+- `src/lib/categories.ts` — the display labels and descriptions for each
+  category, shared by `CategorySelector` and the landing page.
+- `src/app/opengraph-image.tsx` — the generated link-preview image. Titles,
+  descriptions and preview tags are set in `src/app/layout.tsx`.
 - `supabase/schema.sql` — one-time SQL to run in the Supabase SQL editor:
   creates `questions` and `rubrics` tables (with `updated_at` triggers and
   RLS enabled, no public policies — only the `service_role` key can read/
@@ -89,30 +119,40 @@ practice page since both read from the same Supabase tables.
   turn `ADMIN_PASSWORD` into the cookie token.
 - `src/proxy.ts` — default-exports `clerkMiddleware`, which runs on every
   request so `auth()` works in route handlers. Inside it, `/practice(.*)`
-  is protected with `auth.protect()` (signed-out visitors are redirected to
+  and `/dashboard(.*)` are protected with `auth.protect()` (signed-out visitors are redirected to
   `/sign-in` with a return URL), and every `/admin/*` page and
   `/api/admin/*` route (except `/admin/login` and `/api/admin/login`) is
   gated behind a valid admin cookie; unauthenticated admin page requests
   redirect to `/admin/login` and admin API requests get `401`. The AI API
   routes are not matched here — they check the session themselves (below).
+  The matcher skips `/` and `/opengraph-image`: on Clerk's development keys the
+  middleware redirects link-preview bots to Clerk, which would break previews.
+  Any new public page meant to be shared needs the same exclusion.
 - `src/app/api/question/route.ts` — `POST { category, excludeIds }` picks the
   next question from Supabase at random (no Claude call). Returns `401` unless
   the caller has a Clerk session (checked before the rate limit and before any
   DB call). The routes return a JSON `401` rather than a redirect because they
   are called with `fetch()`.
-- `src/app/api/feedback/route.ts` — `POST { category, question, answer }`
-  scores the answer against the category's rubric from Supabase. Same Clerk
-  `401` check. Takes one call from the daily limits before calling Claude:
-  over a limit it returns `429` with `code` `daily_limit` or `app_limit`, which
-  `PracticeScreen` shows as a calm notice instead of an error.
+- `src/app/api/feedback/route.ts` — `POST { questionId, answer }` loads the
+  question from Supabase (never trusting question text from the browser) and
+  scores the answer against the category's rubric. Same Clerk `401` check. Takes
+  one call from the daily limits before calling Claude: over a limit it returns
+  `429` with `code` `daily_limit` or `app_limit`, which `PracticeScreen` shows as
+  a calm notice instead of an error. Saves the attempt and returns `{ score,
+  bullets, attemptId }`; `attemptId` is null if the save failed, and the rating
+  buttons are then hidden.
+- `src/app/api/rating/route.ts` — `POST { attemptId, rating }` saves the user's
+  thumbs up/down from `FeedbackRatingButtons`. Returns `404` for an attempt that
+  isn't theirs.
 - `src/app/api/admin/login/route.ts` / `.../logout/route.ts` — password
   check and cookie issuance/clearing.
 - `src/app/api/admin/questions/route.ts` (list, create) and
   `.../questions/[id]/route.ts` (update, delete) — question CRUD.
 - `src/app/api/admin/rubrics/route.ts` (list) and
   `.../rubrics/[category]/route.ts` (update) — rubric editing.
-- `src/components/` — `Hero` (landing page content + "Start practicing"
-  link), `SiteHeader` (brand + Sign in / `UserButton`), `PracticeFlow` (the
+- `src/components/` — `Hero` (landing page headline + "Start practicing"
+  link), `LandingSections` (how it works, categories, sample feedback, FAQ,
+  privacy note), `ScoreRow` (the score dots), `SiteHeader` (brand + Sign in / `UserButton`), `PracticeFlow` (the
   `category` / `practice` state machine and which questions were already
   asked), `CategorySelector`, `PracticeScreen` (owns the
   answer/submit/feedback state for one question), `FeedbackPanel`.
@@ -183,6 +223,12 @@ to multiple admins.
   `src/lib/anthropic.ts`.
 - `AI_DAILY_CALL_LIMIT` — optional, Claude calls allowed per day across all
   users (default 300), read in `src/lib/usageDb.ts`.
+- `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST` — the PostHog project
+  key (public by design) and ingest URL, e.g. `https://us.i.posthog.com`.
+  Analytics stays off until both are set. Also add them in Vercel, with exactly
+  these names.
+- `NEXT_PUBLIC_SITE_URL` — optional, the public site address used for absolute
+  links in share previews. Defaults to the Vercel production URL.
 - `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — required, read server-side
   only in `src/lib/supabase.ts`. Use the `service_role` key (Project
   Settings -> API), not the `anon` public key — it's never sent to the

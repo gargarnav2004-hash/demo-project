@@ -1,17 +1,9 @@
+import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS } from "@/lib/categories";
 import { CATEGORIES, type Category } from "@/types";
 
 interface CategorySelectorProps {
   onSelect: (category: Category) => void;
 }
-
-const DESCRIPTIONS: Record<Category, string> = {
-  "Product Sense": "Design and improve products for real users.",
-  Metrics: "Define, track, and reason about the right numbers.",
-  Estimation: "Break down ambiguous quantities with structure.",
-  Strategy: "Make the call on markets, positioning, and tradeoffs.",
-  Behavioural: "Tell clear, honest stories about your experience.",
-  "AI PM": "Judgment for building and shipping AI features.",
-};
 
 export default function CategorySelector({ onSelect }: CategorySelectorProps) {
   return (
@@ -25,8 +17,8 @@ export default function CategorySelector({ onSelect }: CategorySelectorProps) {
             onClick={() => onSelect(category)}
             className="rounded-2xl border border-border bg-surface p-5 text-left transition-colors hover:border-primary hover:bg-primary/5"
           >
-            <span className="text-base font-medium">{category}</span>
-            <p className="mt-1 text-sm text-muted">{DESCRIPTIONS[category]}</p>
+            <span className="text-base font-medium">{CATEGORY_LABELS[category] ?? category}</span>
+            <p className="mt-1 text-sm text-muted">{CATEGORY_DESCRIPTIONS[category]}</p>
           </button>
         ))}
       </div>

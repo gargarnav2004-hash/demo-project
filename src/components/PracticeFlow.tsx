@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import CategorySelector from "@/components/CategorySelector";
 import PracticeScreen from "@/components/PracticeScreen";
+import { track } from "@/lib/analytics";
 import type { Category, Question } from "@/types";
 
 type View = "category" | "practice";
@@ -31,6 +32,11 @@ export default function PracticeFlow() {
       const data: { question: Question } = await res.json();
       setQuestion(data.question);
       setAskedIds((prev) => [...prev, data.question.id]);
+      track("question_started", {
+        category: data.question.category,
+        question_id: data.question.id,
+        difficulty: data.question.difficulty,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

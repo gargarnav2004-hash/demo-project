@@ -1,28 +1,18 @@
-import type { FeedbackResult } from "@/types";
+import type { FeedbackResult, Question } from "@/types";
+import FeedbackRatingButtons from "./FeedbackRatingButtons";
+import ScoreRow from "./ScoreRow";
 
 interface FeedbackPanelProps {
   feedback: FeedbackResult;
+  question: Question;
   onNext: () => void;
   onChangeCategory: () => void;
 }
 
-export default function FeedbackPanel({ feedback, onNext, onChangeCategory }: FeedbackPanelProps) {
+export default function FeedbackPanel({ feedback, question, onNext, onChangeCategory }: FeedbackPanelProps) {
   return (
     <div className="mt-6 rounded-2xl border border-border bg-surface p-6">
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium text-muted">Score</span>
-        <div className="flex items-center gap-1">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <span
-              key={i}
-              className={`h-2.5 w-2.5 rounded-full ${
-                i < feedback.score ? "bg-primary" : "bg-border"
-              }`}
-            />
-          ))}
-        </div>
-        <span className="text-sm font-medium">{feedback.score} / 5</span>
-      </div>
+      <ScoreRow score={feedback.score} />
 
       <ul className="mt-4 space-y-2">
         {feedback.bullets.map((bullet, i) => (
@@ -32,6 +22,10 @@ export default function FeedbackPanel({ feedback, onNext, onChangeCategory }: Fe
           </li>
         ))}
       </ul>
+
+      {feedback.attemptId && (
+        <FeedbackRatingButtons attemptId={feedback.attemptId} question={question} />
+      )}
 
       <div className="mt-6 flex flex-wrap gap-3">
         <button

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { track } from "@/lib/analytics";
 import { MAX_ANSWER_LENGTH, type Category, type FeedbackResult, type Question } from "@/types";
 import FeedbackPanel from "./FeedbackPanel";
 
@@ -30,11 +31,17 @@ export default function PracticeScreen({
     setSubmitting(true);
     setSubmitError(null);
     setLimitMessage(null);
+    const questionProps = {
+      category: question.category,
+      question_id: question.id,
+      difficulty: question.difficulty,
+    };
+    track("answer_submitted", { ...questionProps, answer_length: answer.length });
     try {
       const res = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, question: question.prompt, answer }),
+        body: JSON.stringify({ questionId: question.id, answer }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -46,6 +53,7 @@ export default function PracticeScreen({
       }
       const data: FeedbackResult = await res.json();
       setFeedback(data);
+      track("feedback_viewed", { ...questionProps, score: data.score });
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -118,8 +126,13 @@ export default function PracticeScreen({
         </button>
       )}
 
-      {feedback && (
-        <FeedbackPanel feedback={feedback} onNext={handleNext} onChangeCategory={onChangeCategory} />
+      {feedback && question && (
+        <FeedbackPanel
+          feedback={feedback}
+          question={question}
+          onNext={handleNext}
+          onChangeCategory={onChangeCategory}
+        />
       )}
     </section>
   );

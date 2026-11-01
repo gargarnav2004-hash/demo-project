@@ -14,7 +14,7 @@ export default function Hero() {
     <section className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
       <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">PMPrep AI</h1>
       <p className="mt-4 max-w-md text-balance text-lg text-muted">
-        Practice real PM interview questions and get instant, focused feedback.
+        Practice realistic PM interview questions and get instant, focused feedback.
       </p>
       <Link
         href={href}

@@ -24,6 +24,18 @@ export async function getQuestionsByCategory(category: Category): Promise<Questi
   return (data as QuestionRow[]).map(toQuestion);
 }
 
+export async function getQuestionById(id: string): Promise<Question | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("questions")
+    .select("id, category, prompt, difficulty")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data ? toQuestion(data as QuestionRow) : null;
+}
+
 export async function getAllQuestions(): Promise<Question[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
