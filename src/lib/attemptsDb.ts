@@ -27,6 +27,7 @@ interface AttemptSummaryRow {
   question_text: string;
   category: Category;
   difficulty: Difficulty;
+  company: string | null;
   score: number;
   created_at: string;
 }
@@ -53,6 +54,7 @@ function toSummary(row: AttemptSummaryRow): AttemptSummary {
     questionText: row.question_text,
     category: row.category,
     difficulty: row.difficulty,
+    company: row.company,
     score: Number(row.score),
     createdAt: row.created_at,
   };
@@ -77,6 +79,7 @@ export async function saveAttempt(input: {
       question_text: input.question.prompt,
       category: input.question.category,
       difficulty: input.question.difficulty,
+      company: input.question.company,
       answer: input.answer,
       score: input.score,
       ...rubricColumns(input.rubric),
@@ -100,7 +103,7 @@ export async function getUserAttempts(
   const supabase = getSupabaseClient();
   const { data, error, count } = await supabase
     .from("attempts")
-    .select("id, question_text, category, difficulty, score, created_at", { count: "exact" })
+    .select("id, question_text, category, difficulty, company, score, created_at", { count: "exact" })
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(1000);
@@ -116,7 +119,7 @@ export async function getUserAttempt(userId: string, id: string): Promise<Attemp
   const { data, error } = await supabase
     .from("attempts")
     .select(
-      `id, question_text, category, difficulty, score, created_at, answer, bullets, followup_question, ${RUBRIC_COLUMNS},
+      `id, question_text, category, difficulty, company, score, created_at, answer, bullets, followup_question, ${RUBRIC_COLUMNS},
        followups (answer, score, bullets, ${RUBRIC_COLUMNS})`,
     )
     .eq("id", id)

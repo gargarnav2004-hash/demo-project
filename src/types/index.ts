@@ -21,6 +21,13 @@ export interface Question {
   category: Category;
   prompt: string;
   difficulty: Difficulty;
+  // Null for general questions that aren't themed around a company.
+  company: string | null;
+}
+
+export interface CompanyOption {
+  name: string;
+  categories: Category[];
 }
 
 export const RUBRIC_DIMENSIONS = [
@@ -56,6 +63,7 @@ export interface AttemptSummary {
   questionText: string;
   category: Category;
   difficulty: Difficulty;
+  company: string | null;
   score: number;
   createdAt: string;
 }

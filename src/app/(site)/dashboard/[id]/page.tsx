@@ -39,6 +39,11 @@ export default async function AttemptPage({ params }: AttemptPageProps) {
         <span className="rounded-full border border-border px-3 py-1 text-xs text-muted">
           {attempt.difficulty}
         </span>
+        {attempt.company && (
+          <span className="rounded-full border border-border px-3 py-1 text-xs text-muted">
+            {attempt.company}
+          </span>
+        )}
         <span className="text-xs text-muted">{formatDate(attempt.createdAt)}</span>
       </div>
 

@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
   const category = body.category as Category;
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
   const difficulty = body.difficulty as Difficulty;
+  const company = typeof body.company === "string" ? body.company.trim() || null : null;
 
   if (!CATEGORIES.includes(category)) {
     return NextResponse.json({ error: "Invalid category" }, { status: 400 });
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const question = await createQuestion({ category, prompt, difficulty });
+    const question = await createQuestion({ category, prompt, difficulty, company });
     return NextResponse.json({ question }, { status: 201 });
   } catch (error) {
     console.error("Failed to create question:", error);

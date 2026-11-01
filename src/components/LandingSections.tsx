@@ -53,7 +53,7 @@ const FAQS = [
   {
     question: "Are these real interview questions?",
     answer:
-      "They're written in the style of common PM interviews. They aren't leaked questions from any company.",
+      "They're written in the style of common PM interviews. Company-themed questions are practice samples, not questions those companies have actually asked.",
   },
   {
     question: "How long should my answer be?",
@@ -90,7 +90,10 @@ export default function LandingSections() {
       </section>
 
       <section>
-        <SectionHeading title="What you can practice" />
+        <SectionHeading
+          title="What you can practice"
+          intro="Choose a category, or filter for questions themed around Swiggy, Zomato, Flipkart, Razorpay, CRED, or PhonePe."
+        />
         <ul className="mt-6 grid gap-4 sm:grid-cols-2">
           {CATEGORIES.map((category) => (
             <li key={category} className="rounded-2xl border border-border bg-surface p-5">

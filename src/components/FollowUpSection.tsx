@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { track } from "@/lib/analytics";
+import { questionProps, track } from "@/lib/analytics";
 import { MAX_ANSWER_LENGTH, type FollowUpResult, type Question } from "@/types";
 import FeedbackRatingButtons from "./FeedbackRatingButtons";
 import RubricBreakdown from "./RubricBreakdown";
@@ -39,9 +39,7 @@ export default function FollowUpSection({ attemptId, question, followUpQuestion 
       const data: FollowUpResult = await res.json();
       setResult(data);
       track("followup_answered", {
-        category: question.category,
-        question_id: question.id,
-        difficulty: question.difficulty,
+        ...questionProps(question),
         attempt_id: attemptId,
         answer_length: answer.length,
         score: data.score,

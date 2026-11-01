@@ -88,6 +88,11 @@ practice page since both read from the same Supabase tables.
   `attempts` (every scored answer) and `feedback_ratings` (one thumbs up/down
   per attempt). `0003` adds the Root Cause Analysis category with a rubric and
   5 questions. `0004` adds rubric score columns, `followups` and `human_scores`.
+  `0005` adds a nullable `company` to `questions` and `attempts`, with sample
+  questions for six companies. Company names are free text with no company
+  table: `/api/companies` builds the practice filter from the questions, so a
+  new company added in `/admin` appears with no code change. Choosing "All
+  companies" includes both general and company-themed questions.
 - `src/lib/progress.ts` — `computeProgress(attempts)` turns saved attempts into
   the dashboard's category averages, daily score trend (latest 30 practice days)
   and streak. Days are IST dates, and a streak survives until a full day is

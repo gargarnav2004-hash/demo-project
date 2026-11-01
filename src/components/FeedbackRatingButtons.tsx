@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { track } from "@/lib/analytics";
+import { questionProps, track } from "@/lib/analytics";
 import type { FeedbackRating, Question, RatingTarget } from "@/types";
 
 interface FeedbackRatingButtonsProps {
@@ -31,9 +31,7 @@ export default function FeedbackRatingButtons({ attemptId, question, target }: F
       if (!res.ok) throw new Error("Failed to save your rating");
       setRating(next);
       track("feedback_rated", {
-        category: question.category,
-        question_id: question.id,
-        difficulty: question.difficulty,
+        ...questionProps(question),
         rating: next,
         attempt_id: attemptId,
         target,

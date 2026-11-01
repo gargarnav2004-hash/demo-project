@@ -149,7 +149,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                    {attempt.category}
+                    {attempt.company ? `${attempt.company} · ${attempt.category}` : attempt.category}
                   </span>
                   <span className="flex-none text-sm font-medium">{formatScore(attempt.score)} / 5</span>
                 </div>
