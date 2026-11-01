@@ -1,8 +1,7 @@
 import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS } from "@/lib/categories";
+import { CONTACT_EMAIL } from "@/lib/site";
 import { CATEGORIES, type RubricResult } from "@/types";
 import RubricBreakdown from "./RubricBreakdown";
-
-const CONTACT_EMAIL = "garg.arnav2004@gmail.com";
 
 const STEPS = [
   {
