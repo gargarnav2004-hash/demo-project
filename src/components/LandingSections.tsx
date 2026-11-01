@@ -2,8 +2,6 @@ import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS } from "@/lib/categories";
 import { CATEGORIES, type RubricResult } from "@/types";
 import RubricBreakdown from "./RubricBreakdown";
 
-const CONTACT_EMAIL = "garg.arnav2004@gmail.com";
-
 const STEPS = [
   {
     title: "Pick a category",
@@ -142,41 +140,6 @@ export default function LandingSections() {
               <p className="px-5 pb-4 text-sm leading-relaxed text-muted">{faq.answer}</p>
             </details>
           ))}
-        </div>
-      </section>
-
-      <section id="privacy">
-        <SectionHeading title="Your privacy" />
-        <div className="mt-6 space-y-3 text-sm leading-relaxed text-muted">
-          <p>
-            <strong className="font-medium text-foreground">What we store:</strong>{" "}
-            your account details (handled by Clerk), plus your answers, scores, feedback, and ratings, linked to
-            your account. We keep these so you can see your progress and so we can improve the
-            feedback. PMPrep AI&apos;s owner may also email you personally to ask what you think of
-            the app.
-          </p>
-          <p>
-            <strong className="font-medium text-foreground">Who sees your answers:</strong>{" "}
-            they&apos;re sent to Anthropic&apos;s AI to generate your feedback. PMPrep AI&apos;s owner may also read
-            answers to check scoring quality, so please leave out confidential or personal details.
-          </p>
-          <p>
-            <strong className="font-medium text-foreground">Analytics:</strong>{" "}
-            we use PostHog and Vercel Analytics to see how the app is used, such as pages visited and questions
-            started. Your answer text is never sent to them. We don&apos;t sell your data.
-          </p>
-          <p>
-            <strong className="font-medium text-foreground">Sharing:</strong>{" "}
-            if you choose to share a score, anyone with the link can see that score, its category,
-            and its company, but not your answer or your name.
-          </p>
-          <p>
-            To ask a question or have your data deleted, email{" "}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium text-primary underline">
-              {CONTACT_EMAIL}
-            </a>
-            .
-          </p>
         </div>
       </section>
     </div>
