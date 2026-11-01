@@ -61,9 +61,15 @@ practice page since both read from the same Supabase tables.
   (`/api/question` 20/min, `/api/feedback` 10/min). Returns a `429` with
   `Retry-After`. It is in-memory, so on serverless each instance counts
   separately — a best-effort guard against casual abuse of the Anthropic
-  key, not a hard cap. Pair it with a monthly spend limit in the Anthropic
-  Console; swap in a shared store (e.g. Upstash Redis) if stricter limits
-  are ever needed.
+  key, not a hard cap. The daily limits below are the real cost cap.
+- `src/lib/usageDb.ts` — `consumeAiCall(userId)` / `releaseAiCall(userId,
+  usageDate)`: the daily Claude limits, stored in Supabase. Each user gets
+  `USER_DAILY_LIMIT` (20) calls a day and the whole app gets
+  `AI_DAILY_CALL_LIMIT` (default 300). Both reset at midnight IST.
+- `supabase/migrations/` — numbered SQL files for every schema change since
+  `schema.sql`, each run once by hand in the Supabase SQL editor. `0001`
+  adds `usage_daily`, `app_usage_daily` and the atomic `consume_ai_call` /
+  `release_ai_call` functions (executable by `service_role` only).
 - `supabase/schema.sql` — one-time SQL to run in the Supabase SQL editor:
   creates `questions` and `rubrics` tables (with `updated_at` triggers and
   RLS enabled, no public policies — only the `service_role` key can read/
@@ -90,13 +96,15 @@ practice page since both read from the same Supabase tables.
   redirect to `/admin/login` and admin API requests get `401`. The AI API
   routes are not matched here — they check the session themselves (below).
 - `src/app/api/question/route.ts` — `POST { category, excludeIds }` picks the
-  next question from Supabase. Returns `401` unless the caller has a Clerk
-  session (checked before the rate limit and before any DB/Claude call).
-  The routes return a JSON `401` rather than a redirect because they are
-  called with `fetch()`.
+  next question from Supabase at random (no Claude call). Returns `401` unless
+  the caller has a Clerk session (checked before the rate limit and before any
+  DB call). The routes return a JSON `401` rather than a redirect because they
+  are called with `fetch()`.
 - `src/app/api/feedback/route.ts` — `POST { category, question, answer }`
   scores the answer against the category's rubric from Supabase. Same Clerk
-  `401` check.
+  `401` check. Takes one call from the daily limits before calling Claude:
+  over a limit it returns `429` with `code` `daily_limit` or `app_limit`, which
+  `PracticeScreen` shows as a calm notice instead of an error.
 - `src/app/api/admin/login/route.ts` / `.../logout/route.ts` — password
   check and cookie issuance/clearing.
 - `src/app/api/admin/questions/route.ts` (list, create) and
@@ -124,31 +132,26 @@ practice page since both read from the same Supabase tables.
 
 ## How the Anthropic API is used
 
-Model: `claude-opus-4-8` (see `CLAUDE_MODEL` in `src/lib/anthropic.ts`).
+Model: `claude-haiku-5-5` with thinking disabled (see `CLAUDE_MODEL` in
+`src/lib/anthropic.ts`). It was chosen to make limited API credits last; it
+scored strong answers about a point lower than `claude-opus-4-8` in a small
+comparison.
 
-Both public API routes call `client.messages.parse()` with
+Only `/api/feedback` calls Claude, using `client.messages.parse()` with
 `output_config.format` set via `zodOutputFormat(...)`, so Claude's response
 is validated against a Zod schema and returned as `response.parsed_output` —
 no manual JSON parsing or prompt-based "respond only with JSON" hoping.
 
-**Question selection** (`/api/question`): the question bank for the chosen
-category (queried from Supabase, minus ids already asked this session) is
-listed in the user message; Claude is asked to pick the single best next
-question id (`{ question_id: string }`) for variety. The app never lets
-Claude invent a question — it only selects from what's in the database, so
-every question a user sees is one that's been reviewed (via the admin
-panel). If the picked id doesn't match a candidate (or the call fails), the
-app falls back to the first candidate in the pool.
-
 **Scoring** (`/api/feedback`): the category's rubric text is fetched from
 Supabase and placed in the system prompt along with the question and the
-user's answer. Claude returns `{ score: 1-5, bullets: string[] (2-3 items) }`,
-validated by `FeedbackSchema`.
+user's answer. Claude returns `{ score: 1-5, bullets: string[] }`, validated by
+`FeedbackSchema`. The API doesn't enforce array lengths and Haiku often returns
+4 bullets, so the schema has no maximum and the route keeps the first 3.
 
-Both routes wrap the Claude call (and the Supabase reads) in try/catch and
-return a `500`/`404` with a plain-language error (checked by the frontend,
-surfaced to the user) if the API key, Supabase config, or data is missing —
-there's no silent fallback that could mask a misconfiguration.
+If the limit check fails, the route returns a `500` without calling Claude. If
+Claude fails for any reason, including the credits running out, the call is
+given back to the daily limits and the route returns a `503` with a
+plain-language message. Details go to the server log only.
 
 ## Rubric logic
 
@@ -178,6 +181,8 @@ to multiple admins.
 
 - `ANTHROPIC_API_KEY` — required, read server-side only in
   `src/lib/anthropic.ts`.
+- `AI_DAILY_CALL_LIMIT` — optional, Claude calls allowed per day across all
+  users (default 300), read in `src/lib/usageDb.ts`.
 - `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — required, read server-side
   only in `src/lib/supabase.ts`. Use the `service_role` key (Project
   Settings -> API), not the `anon` public key — it's never sent to the
@@ -197,7 +202,9 @@ by the default Next.js `.gitignore` (with an explicit exception for
 Run `supabase/schema.sql` once in the Supabase project's SQL editor
 (Project -> SQL Editor -> New query). It creates the `questions` and
 `rubrics` tables and seeds them with the original question bank and
-rubrics, so the practice app has content immediately.
+rubrics, so the practice app has content immediately. Then run each file in
+`supabase/migrations/` once, in order. `/api/feedback` returns `500` until
+`0001` has been run, so run migrations before deploying the code that needs them.
 
 ## Running locally
 
