@@ -261,9 +261,6 @@ link to it from `/admin`, because that panel is shared by password.
   these names.
 - `NEXT_PUBLIC_SITE_URL` — optional, the public site address used for absolute
   links in share previews. Defaults to the Vercel production URL.
-- `NEXT_PUBLIC_FEEDBACK_URL` — optional, a form link for the "Give feedback" links
-  in the `(site)` footer and `FeedbackPanel`. Defaults to an email to
-  `CONTACT_EMAIL` in `src/lib/site.ts`. Redeploy after changing it.
 - `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — required, read server-side
   only in `src/lib/supabase.ts`. Use the `service_role` key (Project
   Settings -> API), not the `anon` public key — it's never sent to the

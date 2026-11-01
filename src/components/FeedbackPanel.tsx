@@ -1,5 +1,4 @@
 import type { FeedbackResult, Question } from "@/types";
-import FeedbackLink from "./FeedbackLink";
 import FeedbackRatingButtons from "./FeedbackRatingButtons";
 import FollowUpSection from "./FollowUpSection";
 import RubricBreakdown from "./RubricBreakdown";
@@ -43,11 +42,6 @@ export default function FeedbackPanel({ feedback, question, onNext, onChangeCate
           Change category
         </button>
       </div>
-
-      <p className="mt-5 text-sm text-muted">
-        This is an early beta. Did something feel off?{" "}
-        <FeedbackLink className="font-medium text-primary underline" />
-      </p>
     </div>
   );
 }

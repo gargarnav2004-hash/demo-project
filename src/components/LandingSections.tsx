@@ -1,7 +1,8 @@
 import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS } from "@/lib/categories";
-import { CONTACT_EMAIL } from "@/lib/site";
 import { CATEGORIES, type RubricResult } from "@/types";
 import RubricBreakdown from "./RubricBreakdown";
+
+const CONTACT_EMAIL = "garg.arnav2004@gmail.com";
 
 const STEPS = [
   {
@@ -151,7 +152,8 @@ export default function LandingSections() {
             <strong className="font-medium text-foreground">What we store:</strong>{" "}
             your account details (handled by Clerk), plus your answers, scores, feedback, and ratings, linked to
             your account. We keep these so you can see your progress and so we can improve the
-            feedback.
+            feedback. PMPrep AI&apos;s owner may also email you personally to ask what you think of
+            the app.
           </p>
           <p>
             <strong className="font-medium text-foreground">Who sees your answers:</strong>{" "}
