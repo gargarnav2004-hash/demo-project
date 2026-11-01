@@ -17,7 +17,7 @@ and signed-in users straight to `/practice`; after signing in or up Clerk
 returns them to `/practice`.
 
 Flow: landing page `/` ("Start practicing") -> `/sign-in` or `/sign-up` if
-signed out -> `/practice`: category selector (6 categories) ->
+signed out -> `/practice`: category selector (7 categories) ->
 practice screen (one question with category + difficulty badges, textarea, submit) -> feedback panel (score +
 bullets, with "Next question" / "Change category" actions).
 
@@ -58,7 +58,8 @@ practice page since both read from the same Supabase tables.
 
 - `src/types/index.ts` — `Category`, `Difficulty`, `Question`, `Rubric`,
   `FeedbackResult` types, plus the `CATEGORIES` tuple (Product Sense,
-  Metrics, Estimation, Strategy, Behavioural, AI PM), `DIFFICULTIES`
+  Metrics, Root Cause Analysis, Estimation, Strategy, Behavioural, AI PM),
+  `DIFFICULTIES`
   tuple (Easy, Medium, Hard), and the `MAX_ANSWER_LENGTH` (5000) input cap.
 - `src/lib/analytics.ts` — `track(event, props)`, the typed list of PostHog
   events: `signed_up`, `question_started`, `answer_submitted`,
@@ -85,7 +86,12 @@ practice page since both read from the same Supabase tables.
   adds `usage_daily`, `app_usage_daily` and the atomic `consume_ai_call` /
   `release_ai_call` functions (executable by `service_role` only). `0002` adds
   `attempts` (every scored answer) and `feedback_ratings` (one thumbs up/down
-  per attempt).
+  per attempt). `0003` adds the Root Cause Analysis category with a rubric and
+  5 questions.
+- `src/lib/categories.ts` — the display labels and descriptions for each
+  category, shared by `CategorySelector` and the landing page.
+- `src/app/opengraph-image.tsx` — the generated link-preview image. Titles,
+  descriptions and preview tags are set in `src/app/layout.tsx`.
 - `supabase/schema.sql` — one-time SQL to run in the Supabase SQL editor:
   creates `questions` and `rubrics` tables (with `updated_at` triggers and
   RLS enabled, no public policies — only the `service_role` key can read/
@@ -111,6 +117,9 @@ practice page since both read from the same Supabase tables.
   gated behind a valid admin cookie; unauthenticated admin page requests
   redirect to `/admin/login` and admin API requests get `401`. The AI API
   routes are not matched here — they check the session themselves (below).
+  The matcher skips `/` and `/opengraph-image`: on Clerk's development keys the
+  middleware redirects link-preview bots to Clerk, which would break previews.
+  Any new public page meant to be shared needs the same exclusion.
 - `src/app/api/question/route.ts` — `POST { category, excludeIds }` picks the
   next question from Supabase at random (no Claude call). Returns `401` unless
   the caller has a Clerk session (checked before the rate limit and before any
@@ -133,8 +142,9 @@ practice page since both read from the same Supabase tables.
   `.../questions/[id]/route.ts` (update, delete) — question CRUD.
 - `src/app/api/admin/rubrics/route.ts` (list) and
   `.../rubrics/[category]/route.ts` (update) — rubric editing.
-- `src/components/` — `Hero` (landing page content + "Start practicing"
-  link), `SiteHeader` (brand + Sign in / `UserButton`), `PracticeFlow` (the
+- `src/components/` — `Hero` (landing page headline + "Start practicing"
+  link), `LandingSections` (how it works, categories, sample feedback, FAQ,
+  privacy note), `ScoreRow` (the score dots), `SiteHeader` (brand + Sign in / `UserButton`), `PracticeFlow` (the
   `category` / `practice` state machine and which questions were already
   asked), `CategorySelector`, `PracticeScreen` (owns the
   answer/submit/feedback state for one question), `FeedbackPanel`.
@@ -209,6 +219,8 @@ to multiple admins.
   key (public by design) and ingest URL, e.g. `https://us.i.posthog.com`.
   Analytics stays off until both are set. Also add them in Vercel, with exactly
   these names.
+- `NEXT_PUBLIC_SITE_URL` — optional, the public site address used for absolute
+  links in share previews. Defaults to the Vercel production URL.
 - `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — required, read server-side
   only in `src/lib/supabase.ts`. Use the `service_role` key (Project
   Settings -> API), not the `anon` public key — it's never sent to the

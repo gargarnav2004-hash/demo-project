@@ -43,8 +43,10 @@ export default clerkMiddleware(
 
 export const config = {
   matcher: [
-    // Skip Next.js internals, the PostHog proxy and static files, run for everything else.
-    "/((?!_next|ingest/|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Skip Next.js internals, the PostHog proxy, share images and static files, run for everything else.
+    // ".+" also skips the landing page: Clerk's development keys redirect link-preview
+    // bots away from any page this runs on, and the page only checks sign-in in the browser.
+    "/((?!_next|ingest/|opengraph-image|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).+)",
     "/(api|trpc)(.*)",
   ],
 };

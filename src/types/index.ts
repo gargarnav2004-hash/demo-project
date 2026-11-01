@@ -1,6 +1,7 @@
 export const CATEGORIES = [
   "Product Sense",
   "Metrics",
+  "Root Cause Analysis",
   "Estimation",
   "Strategy",
   "Behavioural",
