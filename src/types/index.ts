@@ -14,7 +14,6 @@ export const DIFFICULTIES = ["Easy", "Medium", "Hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
 export const MAX_ANSWER_LENGTH = 5000;
-export const MAX_QUESTION_LENGTH = 1000;
 
 export interface Question {
   id: string;
@@ -26,7 +25,11 @@ export interface Question {
 export interface FeedbackResult {
   score: number;
   bullets: string[];
+  // Null if saving the attempt failed; the feedback is still shown.
+  attemptId: string | null;
 }
+
+export type FeedbackRating = "up" | "down";
 
 export interface Rubric {
   category: Category;

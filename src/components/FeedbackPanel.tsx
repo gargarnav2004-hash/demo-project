@@ -1,12 +1,14 @@
-import type { FeedbackResult } from "@/types";
+import type { FeedbackResult, Question } from "@/types";
+import FeedbackRatingButtons from "./FeedbackRatingButtons";
 
 interface FeedbackPanelProps {
   feedback: FeedbackResult;
+  question: Question;
   onNext: () => void;
   onChangeCategory: () => void;
 }
 
-export default function FeedbackPanel({ feedback, onNext, onChangeCategory }: FeedbackPanelProps) {
+export default function FeedbackPanel({ feedback, question, onNext, onChangeCategory }: FeedbackPanelProps) {
   return (
     <div className="mt-6 rounded-2xl border border-border bg-surface p-6">
       <div className="flex items-center gap-3">
@@ -32,6 +34,10 @@ export default function FeedbackPanel({ feedback, onNext, onChangeCategory }: Fe
           </li>
         ))}
       </ul>
+
+      {feedback.attemptId && (
+        <FeedbackRatingButtons attemptId={feedback.attemptId} question={question} />
+      )}
 
       <div className="mt-6 flex flex-wrap gap-3">
         <button

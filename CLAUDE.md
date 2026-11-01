@@ -48,14 +48,28 @@ practice page since both read from the same Supabase tables.
   separate from Clerk: admins do not need a Clerk account.
 - `@vercel/analytics` — `<Analytics />` is rendered in `src/app/layout.tsx`;
   data shows up in the Vercel project's Analytics tab (must be enabled there)
+- `posthog-js` for product analytics. It starts in
+  `src/instrumentation-client.ts` and sends through the `/ingest` rewrite in
+  `next.config.ts`, so ad blockers lose fewer events. Autocapture, session
+  recording and surveys are off: only the events in `src/lib/analytics.ts` and
+  pageviews are sent, and answer text never reaches PostHog.
 
 ## Where things live
 
 - `src/types/index.ts` — `Category`, `Difficulty`, `Question`, `Rubric`,
   `FeedbackResult` types, plus the `CATEGORIES` tuple (Product Sense,
   Metrics, Estimation, Strategy, Behavioural, AI PM), `DIFFICULTIES`
-  tuple (Easy, Medium, Hard), and the `MAX_ANSWER_LENGTH` (5000) /
-  `MAX_QUESTION_LENGTH` (1000) input caps.
+  tuple (Easy, Medium, Hard), and the `MAX_ANSWER_LENGTH` (5000) input cap.
+- `src/lib/analytics.ts` — `track(event, props)`, the typed list of PostHog
+  events: `signed_up`, `question_started`, `answer_submitted`,
+  `feedback_viewed`, `feedback_rated`.
+- `src/components/PostHogIdentify.tsx` — mounted in the root layout. Calls
+  `posthog.identify` with the Clerk user id only (no email or name),
+  `posthog.reset` after sign-out, and sends `signed_up` once for an account
+  created in the last 10 minutes, since Clerk has no client-side sign-up event.
+- `src/lib/attemptsDb.ts` — `saveAttempt` and `setRating` for the `attempts` and
+  `feedback_ratings` tables. `setRating` checks that the attempt belongs to the
+  user.
 - `src/lib/rateLimit.ts` — `checkRateLimit(req, route, limit)`: per-IP
   sliding-window limiter (60s window) used by the public API routes
   (`/api/question` 20/min, `/api/feedback` 10/min). Returns a `429` with
@@ -69,7 +83,9 @@ practice page since both read from the same Supabase tables.
 - `supabase/migrations/` — numbered SQL files for every schema change since
   `schema.sql`, each run once by hand in the Supabase SQL editor. `0001`
   adds `usage_daily`, `app_usage_daily` and the atomic `consume_ai_call` /
-  `release_ai_call` functions (executable by `service_role` only).
+  `release_ai_call` functions (executable by `service_role` only). `0002` adds
+  `attempts` (every scored answer) and `feedback_ratings` (one thumbs up/down
+  per attempt).
 - `supabase/schema.sql` — one-time SQL to run in the Supabase SQL editor:
   creates `questions` and `rubrics` tables (with `updated_at` triggers and
   RLS enabled, no public policies — only the `service_role` key can read/
@@ -100,11 +116,17 @@ practice page since both read from the same Supabase tables.
   the caller has a Clerk session (checked before the rate limit and before any
   DB call). The routes return a JSON `401` rather than a redirect because they
   are called with `fetch()`.
-- `src/app/api/feedback/route.ts` — `POST { category, question, answer }`
-  scores the answer against the category's rubric from Supabase. Same Clerk
-  `401` check. Takes one call from the daily limits before calling Claude:
-  over a limit it returns `429` with `code` `daily_limit` or `app_limit`, which
-  `PracticeScreen` shows as a calm notice instead of an error.
+- `src/app/api/feedback/route.ts` — `POST { questionId, answer }` loads the
+  question from Supabase (never trusting question text from the browser) and
+  scores the answer against the category's rubric. Same Clerk `401` check. Takes
+  one call from the daily limits before calling Claude: over a limit it returns
+  `429` with `code` `daily_limit` or `app_limit`, which `PracticeScreen` shows as
+  a calm notice instead of an error. Saves the attempt and returns `{ score,
+  bullets, attemptId }`; `attemptId` is null if the save failed, and the rating
+  buttons are then hidden.
+- `src/app/api/rating/route.ts` — `POST { attemptId, rating }` saves the user's
+  thumbs up/down from `FeedbackRatingButtons`. Returns `404` for an attempt that
+  isn't theirs.
 - `src/app/api/admin/login/route.ts` / `.../logout/route.ts` — password
   check and cookie issuance/clearing.
 - `src/app/api/admin/questions/route.ts` (list, create) and
@@ -183,6 +205,10 @@ to multiple admins.
   `src/lib/anthropic.ts`.
 - `AI_DAILY_CALL_LIMIT` — optional, Claude calls allowed per day across all
   users (default 300), read in `src/lib/usageDb.ts`.
+- `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST` — the PostHog project
+  key (public by design) and ingest URL, e.g. `https://us.i.posthog.com`.
+  Analytics stays off until both are set. Also add them in Vercel, with exactly
+  these names.
 - `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — required, read server-side
   only in `src/lib/supabase.ts`. Use the `service_role` key (Project
   Settings -> API), not the `anon` public key — it's never sent to the
