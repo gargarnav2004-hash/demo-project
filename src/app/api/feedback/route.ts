@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { getAnthropicClient, CLAUDE_MODEL } from "@/lib/anthropic";
@@ -12,6 +13,11 @@ const FeedbackSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Please sign in to practice." }, { status: 401 });
+  }
+
   const limited = checkRateLimit(req, "feedback", 10);
   if (limited) return limited;
 
