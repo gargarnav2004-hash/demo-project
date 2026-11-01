@@ -23,11 +23,13 @@ export default function PracticeScreen({
   const [feedback, setFeedback] = useState<FeedbackResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [limitMessage, setLimitMessage] = useState<string | null>(null);
 
   async function handleSubmit() {
     if (!question || !answer.trim() || submitting) return;
     setSubmitting(true);
     setSubmitError(null);
+    setLimitMessage(null);
     try {
       const res = await fetch("/api/feedback", {
         method: "POST",
@@ -36,6 +38,10 @@ export default function PracticeScreen({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        if (data.code === "daily_limit" || data.code === "app_limit") {
+          setLimitMessage(data.error);
+          return;
+        }
         throw new Error(data.error ?? "Failed to get feedback");
       }
       const data: FeedbackResult = await res.json();
@@ -95,6 +101,12 @@ export default function PracticeScreen({
       />
 
       {submitError && <p className="mt-2 text-sm text-red-600">{submitError}</p>}
+
+      {limitMessage && (
+        <p className="mt-4 rounded-2xl border border-border bg-primary/5 p-4 text-sm leading-relaxed">
+          {limitMessage}
+        </p>
+      )}
 
       {!feedback && (
         <button
