@@ -167,8 +167,7 @@ practice page since both read from the same Supabase tables.
 - `src/app/api/admin/rubrics/route.ts` (list) and
   `.../rubrics/[category]/route.ts` (update) — rubric editing.
 - `src/components/` — `Hero` (landing page headline + "Start practicing"
-  link), `LandingSections` (how it works, categories, sample feedback, FAQ,
-  privacy note), `ScoreRow` (the score dots), `SiteHeader` (brand + Sign in / `UserButton`), `PracticeFlow` (the
+  link), `LandingSections` (how it works, categories, sample feedback, FAQ), `ScoreRow` (the score dots), `SiteHeader` (brand + Sign in / `UserButton`), `PracticeFlow` (the
   `category` / `practice` state machine and which questions were already
   asked), `CategorySelector`, `PracticeScreen` (owns the
   answer/submit/feedback state for one question), `FeedbackPanel`.
