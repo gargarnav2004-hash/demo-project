@@ -68,9 +68,9 @@ practice page since both read from the same Supabase tables.
   `posthog.identify` with the Clerk user id only (no email or name),
   `posthog.reset` after sign-out, and sends `signed_up` once for an account
   created in the last 10 minutes, since Clerk has no client-side sign-up event.
-- `src/lib/attemptsDb.ts` — `saveAttempt` and `setRating` for the `attempts` and
-  `feedback_ratings` tables. `setRating` checks that the attempt belongs to the
-  user.
+- `src/lib/attemptsDb.ts` — reads and writes for the `attempts` and
+  `feedback_ratings` tables. `getUserAttempt` and `setRating` check that the
+  attempt belongs to the user.
 - `src/lib/rateLimit.ts` — `checkRateLimit(req, route, limit)`: per-IP
   sliding-window limiter (60s window) used by the public API routes
   (`/api/question` 20/min, `/api/feedback` 10/min). Returns a `429` with
@@ -88,6 +88,14 @@ practice page since both read from the same Supabase tables.
   `attempts` (every scored answer) and `feedback_ratings` (one thumbs up/down
   per attempt). `0003` adds the Root Cause Analysis category with a rubric and
   5 questions.
+- `src/lib/progress.ts` — `computeProgress(attempts)` turns saved attempts into
+  the dashboard's category averages, daily score trend (latest 30 practice days)
+  and streak. Days are IST dates, and a streak survives until a full day is
+  missed. Stats cover the user's latest 1000 answers (Supabase's row limit).
+- `src/app/(site)/dashboard/page.tsx` (`/dashboard`) — protected progress page
+  with totals, streak, `ScoreTrendChart`, category averages and paged past
+  answers. `dashboard/[id]/page.tsx` reopens one answer, and returns `404` for
+  anyone but its owner.
 - `src/lib/categories.ts` — the display labels and descriptions for each
   category, shared by `CategorySelector` and the landing page.
 - `src/app/opengraph-image.tsx` — the generated link-preview image. Titles,
@@ -111,7 +119,7 @@ practice page since both read from the same Supabase tables.
   turn `ADMIN_PASSWORD` into the cookie token.
 - `src/proxy.ts` — default-exports `clerkMiddleware`, which runs on every
   request so `auth()` works in route handlers. Inside it, `/practice(.*)`
-  is protected with `auth.protect()` (signed-out visitors are redirected to
+  and `/dashboard(.*)` are protected with `auth.protect()` (signed-out visitors are redirected to
   `/sign-in` with a return URL), and every `/admin/*` page and
   `/api/admin/*` route (except `/admin/login` and `/api/admin/login`) is
   gated behind a valid admin cookie; unauthenticated admin page requests

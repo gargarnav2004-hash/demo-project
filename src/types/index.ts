@@ -32,6 +32,20 @@ export interface FeedbackResult {
 
 export type FeedbackRating = "up" | "down";
 
+export interface AttemptSummary {
+  id: string;
+  questionText: string;
+  category: Category;
+  difficulty: Difficulty;
+  score: number;
+  createdAt: string;
+}
+
+export interface Attempt extends AttemptSummary {
+  answer: string;
+  bullets: string[];
+}
+
 export interface Rubric {
   category: Category;
   criteria: string;

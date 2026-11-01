@@ -11,9 +11,14 @@ export default function SiteHeader() {
       <Link href="/" className="text-sm font-semibold tracking-tight">
         PMPrep AI
       </Link>
-      <div className="flex h-8 items-center">
+      <div className="flex h-8 items-center gap-4">
         {!isLoaded ? null : isSignedIn ? (
-          <UserButton />
+          <>
+            <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">
+              Dashboard
+            </Link>
+            <UserButton />
+          </>
         ) : (
           <Link
             href="/sign-in"
