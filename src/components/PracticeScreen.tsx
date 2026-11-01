@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { track } from "@/lib/analytics";
+import { questionProps, track } from "@/lib/analytics";
 import { MAX_ANSWER_LENGTH, type Category, type FeedbackResult, type Question } from "@/types";
 import FeedbackPanel from "./FeedbackPanel";
 
@@ -31,12 +31,8 @@ export default function PracticeScreen({
     setSubmitting(true);
     setSubmitError(null);
     setLimitMessage(null);
-    const questionProps = {
-      category: question.category,
-      question_id: question.id,
-      difficulty: question.difficulty,
-    };
-    track("answer_submitted", { ...questionProps, answer_length: answer.length });
+    const props = questionProps(question);
+    track("answer_submitted", { ...props, answer_length: answer.length });
     try {
       const res = await fetch("/api/feedback", {
         method: "POST",
@@ -53,7 +49,7 @@ export default function PracticeScreen({
       }
       const data: FeedbackResult = await res.json();
       setFeedback(data);
-      track("feedback_viewed", { ...questionProps, score: data.score });
+      track("feedback_viewed", { ...props, score: data.score });
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -70,18 +66,25 @@ export default function PracticeScreen({
 
   return (
     <section className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             {category}
           </span>
           {question && !error && (
-            <span className="rounded-full border border-border px-3 py-1 text-xs text-muted">
-              {question.difficulty}
-            </span>
+            <>
+              <span className="rounded-full border border-border px-3 py-1 text-xs text-muted">
+                {question.difficulty}
+              </span>
+              {question.company && (
+                <span className="rounded-full border border-border px-3 py-1 text-xs text-muted">
+                  {question.company}
+                </span>
+              )}
+            </>
           )}
         </div>
-        <button onClick={onChangeCategory} className="text-sm text-muted hover:text-foreground">
+        <button onClick={onChangeCategory} className="flex-none text-sm text-muted hover:text-foreground">
           Change category
         </button>
       </div>

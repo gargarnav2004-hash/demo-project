@@ -10,7 +10,12 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
-  const update: Partial<{ category: Category; prompt: string; difficulty: Difficulty }> = {};
+  const update: Partial<{
+    category: Category;
+    prompt: string;
+    difficulty: Difficulty;
+    company: string | null;
+  }> = {};
 
   if (body.category !== undefined) {
     if (!CATEGORIES.includes(body.category)) {
@@ -30,6 +35,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Invalid difficulty" }, { status: 400 });
     }
     update.difficulty = body.difficulty;
+  }
+  if (body.company !== undefined) {
+    update.company = typeof body.company === "string" ? body.company.trim() || null : null;
   }
 
   if (Object.keys(update).length === 0) {

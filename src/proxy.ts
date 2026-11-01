@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { ADMIN_COOKIE_NAME, hashPassword } from "@/lib/adminAuth";
 
 const isSignedInPage = createRouteMatcher(["/practice(.*)", "/dashboard(.*)"]);
+const isEvalPath = createRouteMatcher(["/admin/eval(.*)", "/api/admin/eval(.*)"]);
 
 // Clerk must see every request so `auth()` works in route handlers. "/" stays
 // public; /practice and /dashboard require a Clerk session (signed-out visitors are sent to
@@ -20,6 +21,11 @@ export default clerkMiddleware(
 
     const isAdminPath = pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
     if (!isAdminPath || pathname === "/admin/login" || pathname === "/api/admin/login") {
+      return;
+    }
+
+    // These check for the owner's Clerk account themselves instead of the shared password.
+    if (isEvalPath(req)) {
       return;
     }
 
@@ -46,7 +52,8 @@ export const config = {
     // Skip Next.js internals, the PostHog proxy, share images and static files, run for everything else.
     // ".+" also skips the landing page: Clerk's development keys redirect link-preview
     // bots away from any page this runs on, and the page only checks sign-in in the browser.
-    "/((?!_next|ingest/|opengraph-image|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).+)",
+    // /s/ holds public score cards, which also need to reach link-preview bots.
+    "/((?!_next|ingest/|opengraph-image|s/|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).+)",
     "/(api|trpc)(.*)",
   ],
 };

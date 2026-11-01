@@ -8,7 +8,10 @@ interface EditState {
   category: Category;
   prompt: string;
   difficulty: Difficulty;
+  company: string;
 }
+
+const COMPANY_LIST_ID = "question-companies";
 
 export default function QuestionsAdmin() {
   const showToast = useToast();
@@ -19,6 +22,7 @@ export default function QuestionsAdmin() {
 
   const [newCategory, setNewCategory] = useState<Category>(CATEGORIES[0]);
   const [newDifficulty, setNewDifficulty] = useState<Difficulty>("Medium");
+  const [newCompany, setNewCompany] = useState("");
   const [newPrompt, setNewPrompt] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -58,7 +62,12 @@ export default function QuestionsAdmin() {
       const res = await fetch("/api/admin/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: newCategory, prompt: newPrompt.trim(), difficulty: newDifficulty }),
+        body: JSON.stringify({
+          category: newCategory,
+          prompt: newPrompt.trim(),
+          difficulty: newDifficulty,
+          company: newCompany,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -67,6 +76,7 @@ export default function QuestionsAdmin() {
       const data: { question: Question } = await res.json();
       setQuestions((prev) => [...prev, data.question]);
       setNewPrompt("");
+      setNewCompany("");
       showToast("success", "Question added");
     } catch (err) {
       showToast("error", err instanceof Error ? err.message : "Something went wrong");
@@ -77,7 +87,12 @@ export default function QuestionsAdmin() {
 
   function startEdit(question: Question) {
     setEditingId(question.id);
-    setEditState({ category: question.category, prompt: question.prompt, difficulty: question.difficulty });
+    setEditState({
+      category: question.category,
+      prompt: question.prompt,
+      difficulty: question.difficulty,
+      company: question.company ?? "",
+    });
   }
 
   function cancelEdit() {
@@ -130,9 +145,16 @@ export default function QuestionsAdmin() {
 
   const visibleQuestions =
     categoryFilter === "All" ? questions : questions.filter((q) => q.category === categoryFilter);
+  const companies = [...new Set(questions.flatMap((q) => (q.company ? [q.company] : [])))];
 
   return (
     <div>
+      <datalist id={COMPANY_LIST_ID}>
+        {companies.map((company) => (
+          <option key={company} value={company} />
+        ))}
+      </datalist>
+
       <div className="rounded-2xl border border-border bg-surface p-5">
         <h2 className="text-sm font-semibold">Add a question</h2>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
@@ -158,6 +180,14 @@ export default function QuestionsAdmin() {
               </option>
             ))}
           </select>
+          <input
+            value={newCompany}
+            onChange={(e) => setNewCompany(e.target.value)}
+            list={COMPANY_LIST_ID}
+            placeholder="Company (optional)"
+            aria-label="Company"
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary sm:flex-1"
+          />
         </div>
         <textarea
           value={newPrompt}
@@ -234,6 +264,14 @@ export default function QuestionsAdmin() {
                           </option>
                         ))}
                       </select>
+                      <input
+                        value={editState.company}
+                        onChange={(e) => setEditState({ ...editState, company: e.target.value })}
+                        list={COMPANY_LIST_ID}
+                        placeholder="Company (optional)"
+                        aria-label="Company"
+                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary sm:flex-1"
+                      />
                     </div>
                     <textarea
                       value={editState.prompt}
@@ -265,6 +303,9 @@ export default function QuestionsAdmin() {
                           {question.category}
                         </span>
                         <span className="text-xs text-muted">{question.difficulty}</span>
+                        {question.company && (
+                          <span className="text-xs font-medium text-muted">{question.company}</span>
+                        )}
                       </div>
                       <p className="mt-2 text-sm leading-relaxed">{question.prompt}</p>
                     </div>

@@ -16,16 +16,21 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const category = body.category as Category;
   const excludeIds: string[] = Array.isArray(body.excludeIds) ? body.excludeIds : [];
+  const company = typeof body.company === "string" && body.company ? body.company : null;
 
   if (!CATEGORIES.includes(category)) {
     return NextResponse.json({ error: "Invalid category" }, { status: 400 });
   }
 
   try {
-    const bank = await getQuestionsByCategory(category);
+    const bank = await getQuestionsByCategory(category, company);
     if (bank.length === 0) {
       return NextResponse.json(
-        { error: `No questions found for ${category}. Add some in the admin panel.` },
+        {
+          error: company
+            ? `No ${category} questions for ${company} yet. Try another category.`
+            : `No questions found for ${category}. Add some in the admin panel.`,
+        },
         { status: 404 },
       );
     }

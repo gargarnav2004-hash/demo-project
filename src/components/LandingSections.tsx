@@ -1,6 +1,6 @@
 import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS } from "@/lib/categories";
-import { CATEGORIES } from "@/types";
-import ScoreRow from "./ScoreRow";
+import { CATEGORIES, type RubricResult } from "@/types";
+import RubricBreakdown from "./RubricBreakdown";
 
 const CONTACT_EMAIL = "garg.arnav2004@gmail.com";
 
@@ -15,25 +15,36 @@ const STEPS = [
   },
   {
     title: "Get specific feedback",
-    body: "See a score out of 5 and notes based on what you actually wrote.",
+    body: "See five scores and notes on what you wrote, then answer a follow-up question.",
   },
 ];
 
+const SAMPLE_RUBRIC: RubricResult = {
+  structure: { score: 4, comment: "You moved clearly from the user to the problem to one idea." },
+  user_focus: { score: 4, comment: "Office workers at lunch is specific, and their pain point is clear." },
+  metrics: { score: 2, comment: "\"More orders\" is too broad to tell you if this worked." },
+  tradeoffs: { score: 3, comment: "You named one downside but didn't weigh the alternatives." },
+  communication: { score: 4, comment: "Short and easy to follow." },
+};
+
 const SAMPLE_BULLETS = [
-  "You chose office workers ordering lunch and named their pain point clearly, but you didn't say how often it happens. Add a rough number to show it's worth solving.",
-  "Scheduled lunch slots is a focused idea. Say what you'd give up to build it, such as fewer impulse orders, so the tradeoff is clear.",
-  "\"More orders\" is too broad a goal. Pick one main metric, like weekly orders per active user, and one guardrail, like on-time delivery rate.",
+  "Pick one main metric, like weekly orders per active user, and one guardrail, like on-time delivery rate.",
+  "Say what you'd give up to build scheduled slots, such as fewer impulse orders.",
 ];
+
+const SAMPLE_FOLLOW_UP =
+  "Scheduled slots could frustrate restaurants at peak times. How would you test this before a full launch?";
 
 const FAQS = [
   {
     question: "How does the scoring work?",
     answer:
-      "AI grades your answer against the criteria for that category, then gives you a score and specific notes. It can make mistakes, so use it as a practice partner and double-check any facts it mentions.",
+      "AI scores your answer from 1 to 5 on structure, user focus, metrics, trade-offs, and communication, then gives you specific notes and a follow-up question. It can make mistakes, so use it as a practice partner and double-check any facts it mentions.",
   },
   {
     question: "Is it free?",
-    answer: "Yes, it's free right now. You can get up to 20 pieces of feedback a day.",
+    answer:
+      "Yes, it's free right now. You can get up to 20 pieces of feedback a day, and a scored follow-up counts as one.",
   },
   {
     question: "Do I need an account?",
@@ -42,7 +53,7 @@ const FAQS = [
   {
     question: "Are these real interview questions?",
     answer:
-      "They're written in the style of common PM interviews. They aren't leaked questions from any company.",
+      "They're written in the style of common PM interviews. Company-themed questions are practice samples, not questions those companies have actually asked.",
   },
   {
     question: "How long should my answer be?",
@@ -79,7 +90,10 @@ export default function LandingSections() {
       </section>
 
       <section>
-        <SectionHeading title="What you can practice" />
+        <SectionHeading
+          title="What you can practice"
+          intro="Choose a category, or filter for questions themed around Swiggy, Zomato, Flipkart, Razorpay, CRED, or PhonePe."
+        />
         <ul className="mt-6 grid gap-4 sm:grid-cols-2">
           {CATEGORIES.map((category) => (
             <li key={category} className="rounded-2xl border border-border bg-surface p-5">
@@ -110,15 +124,11 @@ export default function LandingSections() {
             How would you improve the experience of ordering food through a delivery app?
           </p>
           <div className="mt-5 border-t border-border pt-5">
-            <ScoreRow score={3} />
-            <ul className="mt-4 space-y-2">
-              {SAMPLE_BULLETS.map((bullet) => (
-                <li key={bullet} className="flex gap-2 text-sm leading-relaxed">
-                  <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-primary" />
-                  <span>{bullet}</span>
-                </li>
-              ))}
-            </ul>
+            <RubricBreakdown score={3.4} rubric={SAMPLE_RUBRIC} bullets={SAMPLE_BULLETS} />
+            <div className="mt-5 rounded-2xl border border-border bg-primary/5 p-4">
+              <h3 className="text-sm font-medium text-primary">The interviewer follows up</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed">{SAMPLE_FOLLOW_UP}</p>
+            </div>
           </div>
         </div>
       </section>
@@ -153,6 +163,11 @@ export default function LandingSections() {
             <strong className="font-medium text-foreground">Analytics:</strong>{" "}
             we use PostHog and Vercel Analytics to see how the app is used, such as pages visited and questions
             started. Your answer text is never sent to them. We don&apos;t sell your data.
+          </p>
+          <p>
+            <strong className="font-medium text-foreground">Sharing:</strong>{" "}
+            if you choose to share a score, anyone with the link can see that score, its category,
+            and its company, but not your answer or your name.
           </p>
           <p>
             To ask a question or have your data deleted, email{" "}
