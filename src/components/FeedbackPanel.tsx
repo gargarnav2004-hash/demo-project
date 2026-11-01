@@ -2,6 +2,7 @@ import type { FeedbackResult, Question } from "@/types";
 import FeedbackRatingButtons from "./FeedbackRatingButtons";
 import FollowUpSection from "./FollowUpSection";
 import RubricBreakdown from "./RubricBreakdown";
+import ShareScore from "./ShareScore";
 
 interface FeedbackPanelProps {
   feedback: FeedbackResult;
@@ -18,6 +19,7 @@ export default function FeedbackPanel({ feedback, question, onNext, onChangeCate
       {feedback.attemptId && (
         <>
           <FeedbackRatingButtons attemptId={feedback.attemptId} question={question} target="answer" />
+          <ShareScore attemptId={feedback.attemptId} score={feedback.score} question={question} />
           <FollowUpSection
             attemptId={feedback.attemptId}
             question={question}

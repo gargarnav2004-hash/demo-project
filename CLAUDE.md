@@ -63,7 +63,7 @@ practice page since both read from the same Supabase tables.
   tuple (Easy, Medium, Hard), and the `MAX_ANSWER_LENGTH` (5000) input cap.
 - `src/lib/analytics.ts` — `track(event, props)`, the typed list of PostHog
   events: `signed_up`, `question_started`, `answer_submitted`,
-  `feedback_viewed`, `feedback_rated`, `followup_answered`.
+  `feedback_viewed`, `feedback_rated`, `followup_answered`, `score_card_shared`.
 - `src/components/PostHogIdentify.tsx` — mounted in the root layout. Calls
   `posthog.identify` with the Clerk user id only (no email or name),
   `posthog.reset` after sign-out, and sends `signed_up` once for an account
@@ -92,7 +92,18 @@ practice page since both read from the same Supabase tables.
   questions for six companies. Company names are free text with no company
   table: `/api/companies` builds the practice filter from the questions, so a
   new company added in `/admin` appears with no code change. Choosing "All
-  companies" includes both general and company-themed questions.
+  companies" includes both general and company-themed questions. `0006` adds
+  `attempts.share_id`.
+- `src/components/ShareScore.tsx`, `src/app/api/share/route.ts` and
+  `src/lib/scoreCard.ts` — the share card, per answer rather than per session.
+  `POST /api/share { attemptId }` creates an unguessable share id for the owner
+  only when they ask. The buttons then render as plain links, because browsers
+  block new windows opened after a network request. The score out of 10 is the
+  overall score doubled.
+- `src/app/s/[id]/page.tsx` and `opengraph-image.tsx` — the public score page and
+  card image, read from `getSharedScore`, which selects only score, category and
+  company, so scores can't be faked and answers can't leak. They sit outside
+  `(site)` because a route group would add a hash to the image URL.
 - `src/lib/progress.ts` — `computeProgress(attempts)` turns saved attempts into
   the dashboard's category averages, daily score trend (latest 30 practice days)
   and streak. Days are IST dates, and a streak survives until a full day is
@@ -130,7 +141,7 @@ practice page since both read from the same Supabase tables.
   gated behind a valid admin cookie; unauthenticated admin page requests
   redirect to `/admin/login` and admin API requests get `401`. The AI API
   routes are not matched here — they check the session themselves (below).
-  The matcher skips `/` and `/opengraph-image`: on Clerk's development keys the
+  The matcher skips `/`, `/opengraph-image` and `/s/*`: on Clerk's development keys the
   middleware redirects link-preview bots to Clerk, which would break previews.
   Any new public page meant to be shared needs the same exclusion.
 - `src/app/api/question/route.ts` — `POST { category, excludeIds }` picks the

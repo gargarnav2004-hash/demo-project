@@ -165,6 +165,11 @@ export default function LandingSections() {
             started. Your answer text is never sent to them. We don&apos;t sell your data.
           </p>
           <p>
+            <strong className="font-medium text-foreground">Sharing:</strong>{" "}
+            if you choose to share a score, anyone with the link can see that score, its category,
+            and its company, but not your answer or your name.
+          </p>
+          <p>
             To ask a question or have your data deleted, email{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium text-primary underline">
               {CONTACT_EMAIL}

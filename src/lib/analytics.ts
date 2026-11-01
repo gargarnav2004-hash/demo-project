@@ -1,6 +1,8 @@
 import posthog from "posthog-js";
 import type { Category, Difficulty, FeedbackRating, Question, RatingTarget } from "@/types";
 
+export type ShareChannel = "linkedin" | "whatsapp" | "download";
+
 interface QuestionProps {
   category: Category;
   question_id: string;
@@ -19,6 +21,7 @@ interface AnalyticsEvents {
     target: RatingTarget;
   };
   followup_answered: QuestionProps & { attempt_id: string; answer_length: number; score: number };
+  score_card_shared: QuestionProps & { attempt_id: string; channel: ShareChannel; score: number };
 }
 
 export function questionProps(question: Question): QuestionProps {

@@ -241,3 +241,43 @@ export async function saveFollowUp(input: {
 
   if (error) throw new Error(error.message);
 }
+
+// Returns the attempt's share id, creating one the first time. Returns null if
+// the attempt doesn't belong to the user.
+export async function createShareId(userId: string, attemptId: string): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  const { data: attempt, error: attemptError } = await supabase
+    .from("attempts")
+    .select("share_id")
+    .eq("id", attemptId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (attemptError) throw new Error(attemptError.message);
+  if (!attempt) return null;
+  if (attempt.share_id) return attempt.share_id;
+
+  const shareId = crypto.randomUUID();
+  const { error } = await supabase.from("attempts").update({ share_id: shareId }).eq("id", attemptId);
+  if (error) throw new Error(error.message);
+  return shareId;
+}
+
+export interface SharedScore {
+  score: number;
+  category: Category;
+  company: string | null;
+}
+
+// Public: selects only what a share card shows, never the answer or the user.
+export async function getSharedScore(shareId: string): Promise<SharedScore | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("attempts")
+    .select("score, category, company")
+    .eq("share_id", shareId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data ? { score: Number(data.score), category: data.category, company: data.company } : null;
+}
