@@ -1,5 +1,5 @@
 import posthog from "posthog-js";
-import type { Category, Difficulty, FeedbackRating } from "@/types";
+import type { Category, Difficulty, FeedbackRating, RatingTarget } from "@/types";
 
 interface QuestionProps {
   category: Category;
@@ -12,7 +12,12 @@ interface AnalyticsEvents {
   question_started: QuestionProps;
   answer_submitted: QuestionProps & { answer_length: number };
   feedback_viewed: QuestionProps & { score: number };
-  feedback_rated: QuestionProps & { rating: FeedbackRating; attempt_id: string };
+  feedback_rated: QuestionProps & {
+    rating: FeedbackRating;
+    attempt_id: string;
+    target: RatingTarget;
+  };
+  followup_answered: QuestionProps & { attempt_id: string; answer_length: number; score: number };
 }
 
 export function track<E extends keyof AnalyticsEvents>(event: E, props: AnalyticsEvents[E]) {

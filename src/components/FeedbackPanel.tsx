@@ -1,6 +1,7 @@
 import type { FeedbackResult, Question } from "@/types";
 import FeedbackRatingButtons from "./FeedbackRatingButtons";
-import ScoreRow from "./ScoreRow";
+import FollowUpSection from "./FollowUpSection";
+import RubricBreakdown from "./RubricBreakdown";
 
 interface FeedbackPanelProps {
   feedback: FeedbackResult;
@@ -12,19 +13,17 @@ interface FeedbackPanelProps {
 export default function FeedbackPanel({ feedback, question, onNext, onChangeCategory }: FeedbackPanelProps) {
   return (
     <div className="mt-6 rounded-2xl border border-border bg-surface p-6">
-      <ScoreRow score={feedback.score} />
-
-      <ul className="mt-4 space-y-2">
-        {feedback.bullets.map((bullet, i) => (
-          <li key={i} className="flex gap-2 text-sm leading-relaxed">
-            <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-primary" />
-            <span>{bullet}</span>
-          </li>
-        ))}
-      </ul>
+      <RubricBreakdown score={feedback.score} rubric={feedback.rubric} bullets={feedback.bullets} />
 
       {feedback.attemptId && (
-        <FeedbackRatingButtons attemptId={feedback.attemptId} question={question} />
+        <>
+          <FeedbackRatingButtons attemptId={feedback.attemptId} question={question} target="answer" />
+          <FollowUpSection
+            attemptId={feedback.attemptId}
+            question={question}
+            followUpQuestion={feedback.followUpQuestion}
+          />
+        </>
       )}
 
       <div className="mt-6 flex flex-wrap gap-3">

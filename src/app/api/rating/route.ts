@@ -7,6 +7,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 const RatingSchema = z.object({
   attemptId: z.uuid(),
   rating: z.enum(["up", "down"]),
+  target: z.enum(["answer", "followup"]).default("answer"),
 });
 
 export async function POST(req: NextRequest) {
@@ -25,7 +26,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const saved = await setRating(userId, parsed.data.attemptId, parsed.data.rating);
+    const { attemptId, rating, target } = parsed.data;
+    const saved = await setRating(userId, attemptId, rating, target);
     if (!saved) {
       return NextResponse.json({ error: "Feedback not found" }, { status: 404 });
     }

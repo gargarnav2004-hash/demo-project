@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import ScoreTrendChart from "@/components/ScoreTrendChart";
 import { getUserAttempts } from "@/lib/attemptsDb";
 import { computeProgress, formatDate } from "@/lib/progress";
+import { formatScore } from "@/lib/rubric";
 import type { AttemptSummary } from "@/types";
 
 export const metadata: Metadata = {
@@ -150,7 +151,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
                     {attempt.category}
                   </span>
-                  <span className="flex-none text-sm font-medium">{attempt.score} / 5</span>
+                  <span className="flex-none text-sm font-medium">{formatScore(attempt.score)} / 5</span>
                 </div>
                 <p className="mt-2 text-sm leading-relaxed">{attempt.questionText}</p>
                 <p className="mt-1 text-xs text-muted">{formatDate(attempt.createdAt)}</p>

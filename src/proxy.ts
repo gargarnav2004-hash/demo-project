@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { ADMIN_COOKIE_NAME, hashPassword } from "@/lib/adminAuth";
 
 const isSignedInPage = createRouteMatcher(["/practice(.*)", "/dashboard(.*)"]);
+const isEvalPath = createRouteMatcher(["/admin/eval(.*)", "/api/admin/eval(.*)"]);
 
 // Clerk must see every request so `auth()` works in route handlers. "/" stays
 // public; /practice and /dashboard require a Clerk session (signed-out visitors are sent to
@@ -20,6 +21,11 @@ export default clerkMiddleware(
 
     const isAdminPath = pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
     if (!isAdminPath || pathname === "/admin/login" || pathname === "/api/admin/login") {
+      return;
+    }
+
+    // These check for the owner's Clerk account themselves instead of the shared password.
+    if (isEvalPath(req)) {
       return;
     }
 

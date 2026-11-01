@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { track } from "@/lib/analytics";
-import type { FeedbackRating, Question } from "@/types";
+import type { FeedbackRating, Question, RatingTarget } from "@/types";
 
 interface FeedbackRatingButtonsProps {
   attemptId: string;
   question: Question;
+  target: RatingTarget;
 }
 
 const OPTIONS: { rating: FeedbackRating; label: string }[] = [
@@ -12,7 +13,7 @@ const OPTIONS: { rating: FeedbackRating; label: string }[] = [
   { rating: "down", label: "Not helpful" },
 ];
 
-export default function FeedbackRatingButtons({ attemptId, question }: FeedbackRatingButtonsProps) {
+export default function FeedbackRatingButtons({ attemptId, question, target }: FeedbackRatingButtonsProps) {
   const [rating, setRating] = useState<FeedbackRating | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export default function FeedbackRatingButtons({ attemptId, question }: FeedbackR
       const res = await fetch("/api/rating", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attemptId, rating: next }),
+        body: JSON.stringify({ attemptId, rating: next, target }),
       });
       if (!res.ok) throw new Error("Failed to save your rating");
       setRating(next);
@@ -35,6 +36,7 @@ export default function FeedbackRatingButtons({ attemptId, question }: FeedbackR
         difficulty: question.difficulty,
         rating: next,
         attempt_id: attemptId,
+        target,
       });
     } catch {
       setError("Couldn't save your rating. Please try again.");

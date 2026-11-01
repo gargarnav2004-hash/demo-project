@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
-import ScoreRow from "@/components/ScoreRow";
+import RubricBreakdown from "@/components/RubricBreakdown";
 import { getUserAttempt } from "@/lib/attemptsDb";
 import { formatDate } from "@/lib/progress";
 
@@ -53,16 +53,32 @@ export default async function AttemptPage({ params }: AttemptPageProps) {
 
       <h2 className="mt-6 text-sm font-medium text-muted">Feedback</h2>
       <div className="mt-2 rounded-2xl border border-border bg-surface p-6">
-        <ScoreRow score={attempt.score} />
-        <ul className="mt-4 space-y-2">
-          {attempt.bullets.map((bullet, i) => (
-            <li key={i} className="flex gap-2 text-sm leading-relaxed">
-              <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-primary" />
-              <span>{bullet}</span>
-            </li>
-          ))}
-        </ul>
+        <RubricBreakdown score={attempt.score} rubric={attempt.rubric} bullets={attempt.bullets} />
       </div>
+
+      {attempt.followUpQuestion && (
+        <div className="mt-6 rounded-2xl border border-border bg-primary/5 p-5">
+          <h2 className="text-sm font-medium text-primary">The interviewer followed up</h2>
+          <p className="mt-2 font-medium leading-relaxed">{attempt.followUpQuestion}</p>
+          {attempt.followUp ? (
+            <>
+              <h3 className="mt-4 text-sm font-medium text-muted">Your answer</h3>
+              <p className="mt-2 whitespace-pre-wrap break-words rounded-2xl border border-border bg-surface p-4 text-sm leading-relaxed">
+                {attempt.followUp.answer}
+              </p>
+              <div className="mt-4 rounded-2xl border border-border bg-surface p-5">
+                <RubricBreakdown
+                  score={attempt.followUp.score}
+                  rubric={attempt.followUp.rubric}
+                  bullets={attempt.followUp.bullets}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-muted">You didn&apos;t answer this follow-up.</p>
+          )}
+        </div>
+      )}
     </main>
   );
 }
