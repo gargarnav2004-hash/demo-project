@@ -1,15 +1,14 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import Hero from "@/components/Hero";
 import CategorySelector from "@/components/CategorySelector";
 import PracticeScreen from "@/components/PracticeScreen";
 import type { Category, Question } from "@/types";
 
-type View = "hero" | "category" | "practice";
+type View = "category" | "practice";
 
-export default function Home() {
-  const [view, setView] = useState<View>("hero");
+export default function PracticeFlow() {
+  const [view, setView] = useState<View>("category");
   const [category, setCategory] = useState<Category | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
   const [askedIds, setAskedIds] = useState<string[]>([]);
@@ -61,7 +60,6 @@ export default function Home() {
 
   return (
     <div className="flex flex-1 flex-col">
-      {view === "hero" && <Hero onStart={() => setView("category")} />}
       {view === "category" && <CategorySelector onSelect={handleSelectCategory} />}
       {view === "practice" && category && (
         <PracticeScreen

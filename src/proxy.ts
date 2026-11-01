@@ -1,30 +1,50 @@
-import { NextRequest, NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 import { ADMIN_COOKIE_NAME, hashPassword } from "@/lib/adminAuth";
 
-export async function proxy(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+const isPracticePage = createRouteMatcher(["/practice(.*)"]);
 
-  if (pathname === "/admin/login" || pathname === "/api/admin/login") {
-    return NextResponse.next();
-  }
+// Clerk must see every request so `auth()` works in route handlers. "/" stays
+// public; /practice requires a Clerk session (signed-out visitors are sent to
+// /sign-in and returned afterwards). The AI API routes (/api/question,
+// /api/feedback) check the session themselves and answer 401 JSON, which suits
+// fetch() better than a redirect. /admin keeps its separate password gate.
+export default clerkMiddleware(
+  async (auth, req) => {
+    const { pathname } = req.nextUrl;
 
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  const cookieToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
-  const expectedToken = adminPassword ? await hashPassword(adminPassword) : null;
-  const isAuthed = !!expectedToken && cookieToken === expectedToken;
+    if (isPracticePage(req)) {
+      await auth.protect();
+      return;
+    }
 
-  if (isAuthed) {
-    return NextResponse.next();
-  }
+    const isAdminPath = pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
+    if (!isAdminPath || pathname === "/admin/login" || pathname === "/api/admin/login") {
+      return;
+    }
 
-  if (pathname.startsWith("/api/admin")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const cookieToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+    const expectedToken = adminPassword ? await hashPassword(adminPassword) : null;
+    const isAuthed = !!expectedToken && cookieToken === expectedToken;
 
-  const loginUrl = new URL("/admin/login", req.url);
-  return NextResponse.redirect(loginUrl);
-}
+    if (isAuthed) {
+      return;
+    }
+
+    if (pathname.startsWith("/api/admin")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    return NextResponse.redirect(new URL("/admin/login", req.url));
+  },
+  { signInUrl: "/sign-in", signUpUrl: "/sign-up" },
+);
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: [
+    // Skip Next.js internals and static files, run for everything else.
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
 };
